@@ -1,0 +1,20 @@
+rnd2_noseq_gff=/nfs/scratch/papayv/Tarakihi/TARdn/11_genome_annotation/maker/TRIAL2_TARdn_V2P/round2/TARdn_V2P_rnd2.maker.output/TARdn_V2P_rnd2.all.maker.noseq.gff
+rnd3_dir=/nfs/scratch/papayv/Tarakihi/TARdn/11_genome_annotation/maker/TRIAL2_TARdn_V2P/round3/
+
+cd $rnd3_dir
+
+# transcript alignments
+awk '{ if ($2 ~ "est_gff") print $0 }' $rnd2_noseq_gff > $rnd3_dir/TARdn_V2P_rnd2.all.maker.est.gff
+# protein alignments
+awk '{ if ($2 == "protein2genome") print $0 }' $rnd2_noseq_gff > $rnd3_dir/TARdn_V2P_rnd2.all.maker.protein2genome.gff
+# repeat alignments
+awk '{ if ($2 ~ "repeat_gff") print $0 }' $rnd2_noseq_gff > $rnd3_dir/TARdn_V2P_rnd2.all.maker.repeats.gff
+
+
+#also reuse ctrl files... but dont forget to modify opts.ctl!
+
+rnd2_dir=/nfs/scratch/papayv/Tarakihi/TARdn/11_genome_annotation/maker/TRIAL2_TARdn_V2P/round2/
+
+cp $rnd2_dir/maker_exe.ctl rnd3_dir/
+cp $rnd2_dir/maker_bopts.ctl rnd3_dir/
+cp $rnd2_dir/trial2_rnd2_maker_opts.ctl rnd3_dir/
