@@ -28,4 +28,4 @@ time jellyfish count -C -m 21 -s 5000000000 -t 12 $output_path$filename.catR1R2.
 echo "Export R1R2 21-mers count histogram"
 time jellyfish histo -t 12 $output_path$filename.catR1R2.21mer_counts.jf > $output_path$filename.catR1R2.21mer_counts.histo
 
-echo "This is how we do"
+echo "done"
