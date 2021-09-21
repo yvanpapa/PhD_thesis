@@ -1,0 +1,1 @@
+See Chapter 5 pipeline for fastqc /  multiqc of raw reads
