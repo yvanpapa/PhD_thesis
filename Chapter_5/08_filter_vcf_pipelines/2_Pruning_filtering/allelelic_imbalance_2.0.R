@@ -1,0 +1,84 @@
+# to run on cod node
+
+#require(data.table, lib.loc="/nfs/scratch/papayv/R_Test/Rpackages/")
+library(data.table)
+library(dplyr)
+library(stats)
+
+
+#accept arguments
+args <- commandArgs(TRUE)
+
+gt <- fread(args[1]) # takes 45 sec or so
+ad <- fread(args[2]) # takes 45 sec or so
+
+dim(gt)
+dim(ad)
+
+setnames(gt, 3:ncol(gt), paste(names(gt)[3:ncol(gt)], '_gt', sep=''))
+
+setkey(gt, CHROM, POS)
+setkey(ad, CHROM, POS)
+ad2 <- merge(ad, gt)
+
+# mask uncalled or homozygote individuals (set to NA)
+indivs <- setdiff(names(ad), c('CHROM', 'POS'))
+for(i in indivs){
+  ad2[get(paste(i, '_gt', sep='')) %in% c('0/0', './.', '1/1'), eval(i):=NA]
+}
+
+# check that it worked
+#	ad2[1:10, .(BM_026_gt, BM_026)]
+#	ad2[BM_026_gt=='0/1', .(BM_026_gt, BM_026)]
+#
+#	ad2[1:10, .(BM_027_gt, BM_027)]
+#	ad2[BM_027_gt=='0/1', .(BM_027_gt, BM_027)]
+
+# remove gt columns (to clean up)
+for(i in indivs){
+  ad2[, eval(paste(i, '_gt', sep='')):=NULL]
+}
+
+# extract ref and alt alleles for het individuals (slow: takes 30? min or so)
+for(i in indivs){
+  cat(paste(i, ' ', sep=''))
+  ad2[, eval(paste(i, '_ref', sep='')) := as.numeric(sapply(strsplit(get(i), split=','), '[', 1))]
+  ad2[, eval(paste(i, '_alt', sep='')) := as.numeric(sapply(strsplit(get(i), split=','), '[', 2))]
+}
+
+# sum ref and alt alleles across het individuals
+ad2[, sumRef := rowSums(.SD, na.rm=TRUE), .SDcol = grep('_ref', names(ad2))]
+ad2[, sumAlt := rowSums(.SD, na.rm=TRUE), .SDcol = grep('_alt', names(ad2))]
+
+ad3 <- dplyr::select(ad2,CHROM,POS,sumRef,sumAlt)
+ad3 <- dplyr::filter(ad3, sumRef>0,sumAlt>0,!is.na(sumRef),!is.na(sumAlt))
+n=nrow(ad3)
+
+ad3$sumRef <- as.integer(ad3$sumRef)
+ad3$sumAlt <- as.integer(ad3$sumAlt)
+
+for(i in 1:n){
+  ad3$binomp[i] <- stats::binom.test(c(ad3$sumRef[i],ad3$sumAlt[i]), p=0.5, alternative='two.sided')$p.value
+}
+ad3 <- as.data.table(ad3)
+ad3[,binompFDR := p.adjust(binomp, method='fdr')]
+
+ad2 <- ad3
+
+### from old script didn't run properly on the cluster
+#### binomial test for allele balance == 0.5
+###ad2[,r:=1:.N] # row number
+###ad2[sumAlt>0 & sumRef>0 & !is.na(sumAlt) & !is.na(sumRef),binomp := binom.test(sumRef, sumRef+sumAlt, p=0.5, alternative='two.sided')$p.value, by=r]
+###
+#### ad2[,.(sumAlt, sumRef, binomp)]
+###
+#### calc FDR
+###ad2[,binompFDR := p.adjust(binomp, method='fdr')]
+
+# write out
+#write.table(ad2[,.(CHROM, POS, sumRef, sumAlt)], file='Allele_balance/Allele_balance.binomp.tsv', row.names=FALSE, sep='/t')
+
+x=paste0(c(args[3]),c(".tsv"))
+
+
+write.table(ad2[,.(CHROM, POS, sumRef, sumAlt, binomp, binompFDR)], file=x, row.names=FALSE, sep='\t', quote=FALSE)
