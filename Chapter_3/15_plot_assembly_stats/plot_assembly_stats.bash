@@ -10,6 +10,8 @@
 #SBATCH --mail-user=yvan.papa@vuw.ac.nz
 
 #You need to rename your assembly file without underscores, or the html file wont work!!
+#Another important warning: The html file will seem empty if you open it in Raapoi. You need to download the html file
+#and the three css, js, and json folders loally in order to visualize the html file with Google Chrome
 
 dir=/nfs/scratch/papayv/Tarakihi/TARdn/13_figure_stats/
 
